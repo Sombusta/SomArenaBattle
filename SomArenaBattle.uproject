@@ -1,0 +1,16 @@
+{
+  "FileVersion": 3,
+  "EngineAssociation": "4.23",
+  "Category": "",
+  "Description": "Copyright (c) 2014-2019 Sombusta, All Rights Reserved.",
+  "Modules": [
+    {
+      "Name": "SomArenaBattle",
+      "Type": "Runtime",
+      "LoadingPhase": "Default",
+      "AdditionalDependencies": [
+        "Engine"
+      ]
+    }
+  ]
+}
