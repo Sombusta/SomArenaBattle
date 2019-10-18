@@ -12,6 +12,7 @@
 #include "GameFramework/SpringArmComponent.h"
 #include "Engine/SkeletalMesh.h"
 #include "Animation/AnimInstance.h"
+#include "Animations/SomABAnimInstance.h"
 
 ASomAB_TPCharacter::ASomAB_TPCharacter()
 {
@@ -61,19 +62,43 @@ ASomAB_TPCharacter::ASomAB_TPCharacter()
 	// Configure character movement
 	GetCharacterMovement()->bOrientRotationToMovement = true; // Character moves in the direction of input...	
 	GetCharacterMovement()->RotationRate = FRotator(0.0f, 540.0f, 0.0f); // ...at this rotation rate
-	GetCharacterMovement()->JumpZVelocity = 600.f;
+	GetCharacterMovement()->JumpZVelocity = 800.f; // 600.f;
 	GetCharacterMovement()->AirControl = 0.2f;
 
 	SetControlMode(EABControlType::GTA);
 
 	ArmLengthSpeed = 3.0f;
 	ArmRotationSpeed = 10.0f;
+
+	bIsAttacking = false;
+	MaxCombo = 4;
+	AttackEndComboState();
 }
 
 void ASomAB_TPCharacter::PostInitializeComponents()
 {
 	Super::PostInitializeComponents();
 
+	TargetAnimBP = Cast<USomABAnimInstance>(GetMesh()->GetAnimInstance());
+
+	ABCHECK(TargetAnimBP != nullptr);
+
+	if (TargetAnimBP != nullptr) 
+	{
+		TargetAnimBP->OnMontageEnded.AddDynamic(this, &ASomAB_TPCharacter::OnAttackMontageEnded);
+
+		TargetAnimBP->OnNextAttackCheck.AddLambda([this]() -> void 
+			{
+				ABLOG(Warning, TEXT("OnNextAttackCheck %d"), 0);
+				bCanNextCombo = false;
+
+				if (bIsComboInputOn)
+				{
+					AttackStartComboState();
+					TargetAnimBP->JumpToAttackMontageSection(CurrentCombo);
+				}
+			});
+	}
 }
 
 void ASomAB_TPCharacter::BeginPlay()
@@ -107,7 +132,6 @@ void ASomAB_TPCharacter::Tick(float DeltaSeconds)
 			}
 		}
 	}
-
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -119,6 +143,7 @@ void ASomAB_TPCharacter::SetupPlayerInputComponent(class UInputComponent* Player
 	check(PlayerInputComponent);
 	PlayerInputComponent->BindAction("Jump", IE_Pressed, this, &ACharacter::Jump);
 	PlayerInputComponent->BindAction("Jump", IE_Released, this, &ACharacter::StopJumping);
+	PlayerInputComponent->BindAction("Attack", IE_Released, this, &ASomAB_TPCharacter::Attack);
 
 	PlayerInputComponent->BindAxis("MoveForward", this, &ASomAB_TPCharacter::MoveForward);
 	PlayerInputComponent->BindAxis("MoveRight", this, &ASomAB_TPCharacter::MoveRight);
@@ -205,6 +230,56 @@ void ASomAB_TPCharacter::LookUpAtRate(float Rate)
 {
 	// calculate delta for this frame from the rate information
 	AddControllerPitchInput(Rate * BaseLookUpRate * GetWorld()->GetDeltaSeconds());
+}
+
+void ASomAB_TPCharacter::Attack()
+{
+	// USomABAnimInstance* TargetAnimBP = Cast<USomABAnimInstance>(GetMesh()->GetAnimInstance());
+
+	if (TargetAnimBP == nullptr) return;
+
+	if (bIsAttacking)
+	{
+		ABCHECK(FMath::IsWithinInclusive<int32>(CurrentCombo, 1, MaxCombo));
+
+		if (bCanNextCombo) {
+			bIsComboInputOn = true;
+		}
+	}
+	else
+	{
+		ABCHECK(CurrentCombo == 0);
+		AttackStartComboState();
+		TargetAnimBP->PlayAttackMontage();
+		TargetAnimBP->JumpToAttackMontageSection(CurrentCombo);
+		bIsAttacking = true;
+	}		
+}
+
+void ASomAB_TPCharacter::AttackStartComboState()
+{
+	bCanNextCombo = true;
+	bIsComboInputOn = false;
+
+	ABCHECK(FMath::IsWithinInclusive<int32>(CurrentCombo, 0, MaxCombo - 1));
+	
+	CurrentCombo = FMath::Clamp<int32>(CurrentCombo + 1, 1, MaxCombo);
+}
+
+void ASomAB_TPCharacter::AttackEndComboState()
+{
+	bIsComboInputOn = false;	
+	bCanNextCombo = false;
+	CurrentCombo = 0;
+}
+
+void ASomAB_TPCharacter::OnAttackMontageEnded(UAnimMontage* Montage, bool bInterrupted)
+{
+	ABCHECK(bIsAttacking);
+	ABCHECK(CurrentCombo > 0);
+
+	bIsAttacking = false;
+	AttackEndComboState();
 }
 
 void ASomAB_TPCharacter::MoveForward(float Value)

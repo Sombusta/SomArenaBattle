@@ -45,14 +45,14 @@ public:
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
 
-protected:
-
 private:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SomABWorks|Variables", meta = (AllowPrivateAccess = "true"))
 	int32 ObjectID;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SomABWorks|Variables", meta = (AllowPrivateAccess = "true"))
 	float RotationSpeed;
+
+protected:
 
 public:	
 

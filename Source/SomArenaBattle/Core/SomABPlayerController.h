@@ -26,6 +26,9 @@ public:
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
 	
+	// Allows the PlayerController to set up custom input bindings
+	virtual void SetupInputComponent() override;
+
 	// Called when this controller possesses a pawn
 	virtual void OnPossess(APawn* InPawn) override;
 

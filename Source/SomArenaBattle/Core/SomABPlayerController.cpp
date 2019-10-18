@@ -37,6 +37,12 @@ void ASomABPlayerController::Tick(float DeltaTime)
 
 }
 
+void ASomABPlayerController::SetupInputComponent()
+{
+	Super::SetupInputComponent();
+
+}
+
 void ASomABPlayerController::OnPossess(APawn* InPawn)
 {
 	ABLOG_S(Warning);

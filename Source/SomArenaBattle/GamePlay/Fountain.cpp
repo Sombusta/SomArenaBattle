@@ -89,4 +89,3 @@ void AFountain::Tick(float DeltaTime)
 	
 	//AddActorLocalRotation(FRotator(0.0f, RotationSpeed * DeltaTime, 0.0f));	
 }
-

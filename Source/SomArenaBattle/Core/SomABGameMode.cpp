@@ -13,7 +13,7 @@ ASomABGameMode::ASomABGameMode()
 	// set default pawn class to our Blueprinted character
 	static ConstructorHelpers::FClassFinder<APawn> PlayerPawnBPClass(TEXT("Blueprint'/Game/SomBattleArena/Blueprints/Player/BP_SomABCharacter.BP_SomABCharacter_C'"));
 
-	if (PlayerPawnBPClass.Class != NULL)
+	if (PlayerPawnBPClass.Class != nullptr)
 	{
 		DefaultPawnClass = PlayerPawnBPClass.Class;
 	}
