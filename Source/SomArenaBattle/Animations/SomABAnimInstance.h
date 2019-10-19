@@ -20,6 +20,9 @@ public:
 	virtual void NativeUpdateAnimation(float DeltaSeconds) override;
 
 	UFUNCTION(BlueprintCallable, Category = "SomABWorks")
+	void SetDeadState() { bIsDead = true; }
+
+	UFUNCTION(BlueprintCallable, Category = "SomABWorks")
 	void PlayAttackMontage();
 
 	UFUNCTION(BlueprintCallable, Category = "SomABWorks")
@@ -32,11 +35,14 @@ public:
 	void AnimNotify_NextAttackCheck();
 
 private:
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "SomABWorks", meta = (AllowPrivateAccess = "true"))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "SomABWorks", meta = (AllowPrivateAccess = "true"))
 	float CurrentPawnSpeed;
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "SomABWorks", meta = (AllowPrivateAccess = "true"))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "SomABWorks", meta = (AllowPrivateAccess = "true"))
 	bool bIsInAir;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "SomABWorks", meta = (AllowPrivateAccess = "true"))
+	bool bIsDead;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "SomABWorks", meta = (AllowPrivateAccess = "true"))
 	class UAnimMontage* AttackMontage;

@@ -19,11 +19,11 @@ class ASomAB_TPCharacter : public ACharacter
 {
 	GENERATED_BODY()
 
-	/** Camera boom positioning the camera behind the character */
+	// Camera boom positioning the camera behind the character
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera, meta = (AllowPrivateAccess = "true"))
 	class USpringArmComponent* MainCameraArm;
 
-	/** Follow camera */
+	// Follow camera
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera, meta = (AllowPrivateAccess = "true"))
 	class UCameraComponent* MainCamera;
 
@@ -46,14 +46,13 @@ public:
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 	// End of APawn interface
 
-	void SetControlMode(EABControlType NewControlMode);
+	// Apply damage to this actor.
+	virtual float TakeDamage(float Damage, struct FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser) override;
 
-	void ViewChange();
-
-	/** Called for forwards/backward input */
+	// Called for forwards/backward input
 	void MoveForward(float Value);
 
-	/** Called for side to side input */
+	// Called for side to side input
 	void MoveRight(float Value);
 
 	/**
@@ -68,39 +67,37 @@ public:
 	 */
 	void LookUpAtRate(float Rate);
 
-	void Attack();
+	void SetControlMode(EABControlType NewControlMode);
+	void ViewChange();
 
-	void AttackStartComboState();
-	
+	void Attack();
+	void AttackCheck();
+	void AttackStartComboState();	
 	void AttackEndComboState();
 
 	UFUNCTION()
-	void OnAttackMontageEnded(class UAnimMontage* Montage, bool bInterrupted);	
+	void OnAttackMontageEnded(class UAnimMontage* Montage, bool bInterrupted);
 
 private:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "SomABWorks", meta = (AllowPrivateAccess = "true"))
 	class USomABAnimInstance* TargetAnimBP;
 
 	// SomWorks :D // Movement
-	/** Base turn rate, in deg/sec. Other scaling may affect final turn rate. */
+	// Base turn rate, in deg/sec. Other scaling may affect final turn rate.
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera, meta = (AllowPrivateAccess = "true"))
 	float BaseTurnRate;
 
-	/** Base look up/down rate, in deg/sec. Other scaling may affect final rate. */
+	// Base look up/down rate, in deg/sec. Other scaling may affect final rate.
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera, meta = (AllowPrivateAccess = "true"))
 	float BaseLookUpRate;
 		
 	EABControlType CurrentControlType = EABControlType::None;
-
 	FVector DirectionToMove = FVector::ZeroVector;
 
 	// SomWorks :D // CameraArm Setting
 	float ArmLengthTo = 0.0f;
-
 	FRotator ArmRotationTo = FRotator::ZeroRotator;
-
 	float ArmLengthSpeed = 0.0f;
-
 	float ArmRotationSpeed = 0.0f;
 	
 	// SomWorks :D // Attack
@@ -118,6 +115,12 @@ private:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "SomABWorks", meta = (AllowPrivateAccess = "true"))
 	int32 MaxCombo;
+
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "SomABWorks", meta = (AllowPrivateAccess = "true"))
+	float AttackRange;
+
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "SomABWorks", meta = (AllowPrivateAccess = "true"))
+	float AttackRadius;
 
 public:
 	/** Returns CameraBoom subobject **/

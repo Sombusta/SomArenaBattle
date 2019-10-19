@@ -13,6 +13,7 @@
 #include "Engine/SkeletalMesh.h"
 #include "Animation/AnimInstance.h"
 #include "Animations/SomABAnimInstance.h"
+#include "DrawDebugHelpers.h"
 
 ASomAB_TPCharacter::ASomAB_TPCharacter()
 {
@@ -26,6 +27,7 @@ ASomAB_TPCharacter::ASomAB_TPCharacter()
 
 	// Set size for collision capsule
 	GetCapsuleComponent()->InitCapsuleSize(42.f, 96.0f);
+	GetCapsuleComponent()->SetCollisionProfileName(TEXT("SomABCharacter"));
 
 	// Set mesh location and rotation
 	GetMesh()->SetRelativeLocationAndRotation(FVector(0.0f, 0.0f, -88.0f), FRotator(0.0f, -90.0f, 0.0f));
@@ -73,6 +75,9 @@ ASomAB_TPCharacter::ASomAB_TPCharacter()
 	bIsAttacking = false;
 	MaxCombo = 4;
 	AttackEndComboState();
+
+	AttackRange = 200.f;
+	AttackRadius = 50.f;
 }
 
 void ASomAB_TPCharacter::PostInitializeComponents()
@@ -87,6 +92,8 @@ void ASomAB_TPCharacter::PostInitializeComponents()
 	{
 		TargetAnimBP->OnMontageEnded.AddDynamic(this, &ASomAB_TPCharacter::OnAttackMontageEnded);
 
+		TargetAnimBP->OnAttackHitCheck.AddUObject(this, &ASomAB_TPCharacter::AttackCheck);
+
 		TargetAnimBP->OnNextAttackCheck.AddLambda([this]() -> void 
 			{
 				ABLOG(Warning, TEXT("OnNextAttackCheck %d"), 0);
@@ -97,7 +104,7 @@ void ASomAB_TPCharacter::PostInitializeComponents()
 					AttackStartComboState();
 					TargetAnimBP->JumpToAttackMontageSection(CurrentCombo);
 				}
-			});
+			});		
 	}
 }
 
@@ -134,9 +141,6 @@ void ASomAB_TPCharacter::Tick(float DeltaSeconds)
 	}
 }
 
-//////////////////////////////////////////////////////////////////////////
-// Input
-
 void ASomAB_TPCharacter::SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent)
 {
 	// Set up gameplay key bindings
@@ -160,6 +164,76 @@ void ASomAB_TPCharacter::SetupPlayerInputComponent(class UInputComponent* Player
 		PlayerInputComponent->BindAxis("LookUp", this, &APawn::AddControllerPitchInput);
 		PlayerInputComponent->BindAxis("LookUpRate", this, &ASomAB_TPCharacter::LookUpAtRate);
 	}
+}
+
+float ASomAB_TPCharacter::TakeDamage(float Damage, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser)
+{
+	float Result = Super::TakeDamage(Damage, DamageEvent, EventInstigator, DamageCauser);
+
+	ABLOG(Warning, TEXT("Actor : %s took Damage : %f"), *GetName(), Result);
+
+	if (Result > 0.0f)
+	{
+		TargetAnimBP->SetDeadState();
+		SetActorEnableCollision(false);
+	}
+
+	return Result;
+}
+
+void ASomAB_TPCharacter::MoveForward(float Value)
+{
+	if (CurrentControlType == EABControlType::Diablo)
+	{
+		DirectionToMove.X = Value;
+	}
+	else
+	{
+		if ((Controller != NULL) && (Value != 0.0f))
+		{
+			// find out which way is forward
+			const FRotator Rotation = Controller->GetControlRotation();
+			const FRotator YawRotation(0, Rotation.Yaw, 0);
+
+			// get forward vector
+			const FVector Direction = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::X);
+			AddMovementInput(Direction, Value);
+		}
+	}
+}
+
+void ASomAB_TPCharacter::MoveRight(float Value)
+{
+	if (CurrentControlType == EABControlType::Diablo)
+	{
+		DirectionToMove.Y = Value;
+	}
+	else
+	{
+		if ((Controller != NULL) && (Value != 0.0f))
+		{
+			// find out which way is right
+			const FRotator Rotation = Controller->GetControlRotation();
+			const FRotator YawRotation(0, Rotation.Yaw, 0);
+
+			// get right vector 
+			const FVector Direction = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::Y);
+			// add movement in that direction
+			AddMovementInput(Direction, Value);
+		}
+	}
+}
+
+void ASomAB_TPCharacter::TurnAtRate(float Rate)
+{
+	// calculate delta for this frame from the rate information
+	AddControllerYawInput(Rate * BaseTurnRate * GetWorld()->GetDeltaSeconds());
+}
+
+void ASomAB_TPCharacter::LookUpAtRate(float Rate)
+{
+	// calculate delta for this frame from the rate information
+	AddControllerPitchInput(Rate * BaseLookUpRate * GetWorld()->GetDeltaSeconds());
 }
 
 void ASomAB_TPCharacter::SetControlMode(EABControlType NewControlMode)
@@ -220,18 +294,6 @@ void ASomAB_TPCharacter::ViewChange()
 	}
 }
 
-void ASomAB_TPCharacter::TurnAtRate(float Rate)
-{
-	// calculate delta for this frame from the rate information
-	AddControllerYawInput(Rate * BaseTurnRate * GetWorld()->GetDeltaSeconds());
-}
-
-void ASomAB_TPCharacter::LookUpAtRate(float Rate)
-{
-	// calculate delta for this frame from the rate information
-	AddControllerPitchInput(Rate * BaseLookUpRate * GetWorld()->GetDeltaSeconds());
-}
-
 void ASomAB_TPCharacter::Attack()
 {
 	// USomABAnimInstance* TargetAnimBP = Cast<USomABAnimInstance>(GetMesh()->GetAnimInstance());
@@ -254,6 +316,54 @@ void ASomAB_TPCharacter::Attack()
 		TargetAnimBP->JumpToAttackMontageSection(CurrentCombo);
 		bIsAttacking = true;
 	}		
+}
+
+void ASomAB_TPCharacter::AttackCheck()
+{
+	FHitResult HitResult;
+	
+	FCollisionQueryParams Params(NAME_None, false, this);
+
+	bool bResult = GetWorld()->SweepSingleByChannel(
+		HitResult,
+		GetActorLocation(),
+		GetActorLocation() + GetActorForwardVector() * 200.f,
+		FQuat::Identity,
+		ECollisionChannel::ECC_GameTraceChannel2,
+		FCollisionShape::MakeSphere(50.f),
+		Params);
+	
+#if ENABLE_DRAW_DEBUG
+	
+	FVector TraceVec = GetActorForwardVector() * AttackRange;
+	FVector Center = GetActorLocation() + TraceVec * 0.5f;
+	float HalfHeight = AttackRange * 0.5f + AttackRadius;
+	FQuat CapsuleRot = FRotationMatrix::MakeFromZ(TraceVec).ToQuat();
+	FColor DrawColor = bResult ? FColor::Green : FColor::Red;
+	float DebugLifeTime = 5.0f;
+
+	DrawDebugCapsule(
+		GetWorld(),
+		Center,
+		HalfHeight,
+		AttackRadius,
+		CapsuleRot,
+		DrawColor,
+		false,
+		DebugLifeTime);
+
+#endif
+
+	if (bResult)
+	{
+		if (HitResult.Actor.IsValid())
+		{
+			ABLOG(Warning, TEXT("Hit Actor Name : %s"), *HitResult.Actor->GetName());
+			
+			FDamageEvent DamageEvent;
+			HitResult.Actor->TakeDamage(50.0f, DamageEvent, GetController(), this);
+		}
+	}
 }
 
 void ASomAB_TPCharacter::AttackStartComboState()
@@ -280,47 +390,4 @@ void ASomAB_TPCharacter::OnAttackMontageEnded(UAnimMontage* Montage, bool bInter
 
 	bIsAttacking = false;
 	AttackEndComboState();
-}
-
-void ASomAB_TPCharacter::MoveForward(float Value)
-{
-	if (CurrentControlType == EABControlType::Diablo)
-	{
-		DirectionToMove.X = Value;
-	}
-	else
-	{
-		if ((Controller != NULL) && (Value != 0.0f))
-		{
-			// find out which way is forward
-			const FRotator Rotation = Controller->GetControlRotation();
-			const FRotator YawRotation(0, Rotation.Yaw, 0);
-
-			// get forward vector
-			const FVector Direction = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::X);
-			AddMovementInput(Direction, Value);
-		}
-	}	
-}
-
-void ASomAB_TPCharacter::MoveRight(float Value)
-{
-	if (CurrentControlType == EABControlType::Diablo)
-	{
-		DirectionToMove.Y = Value;
-	}
-	else
-	{
-		if ((Controller != NULL) && (Value != 0.0f))
-		{
-			// find out which way is right
-			const FRotator Rotation = Controller->GetControlRotation();
-			const FRotator YawRotation(0, Rotation.Yaw, 0);
-
-			// get right vector 
-			const FVector Direction = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::Y);
-			// add movement in that direction
-			AddMovementInput(Direction, Value);
-		}
-	}
 }

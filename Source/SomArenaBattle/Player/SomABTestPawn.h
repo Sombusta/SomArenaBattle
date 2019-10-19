@@ -46,7 +46,7 @@ public:
 	virtual void PossessedBy(AController* NewController) override;
 
 	void MoveForward(float Value);
-
+	
 	void MoveRight(float Value);
 
 private:

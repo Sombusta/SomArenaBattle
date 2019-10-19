@@ -9,6 +9,7 @@ USomABAnimInstance::USomABAnimInstance()
 {
 	CurrentPawnSpeed = 0.0f;
 	bIsInAir = false;
+	bIsDead = false;
 }
 
 void USomABAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
@@ -16,8 +17,10 @@ void USomABAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
 	Super::NativeUpdateAnimation(DeltaSeconds);
 
 	APawn* TargetPawn = TryGetPawnOwner();
+	
+	if (!::IsValid(TargetPawn)) return;
 
-	if (::IsValid(TargetPawn))
+	if(!bIsDead)
 	{
 		CurrentPawnSpeed = TargetPawn->GetVelocity().Size();
 
@@ -32,6 +35,8 @@ void USomABAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
 
 void USomABAnimInstance::PlayAttackMontage()
 {
+	ABCHECK(!bIsDead);
+
 	if (AttackMontage == nullptr) return;
 
 	Montage_Play(AttackMontage, 1.0f);
@@ -39,6 +44,7 @@ void USomABAnimInstance::PlayAttackMontage()
 
 void USomABAnimInstance::JumpToAttackMontageSection(int32 NewSection)
 {
+	ABCHECK(!bIsDead);
 	ABCHECK(Montage_IsPlaying(AttackMontage));
 	Montage_JumpToSection(GetAttackMontageSectionName(NewSection), AttackMontage);
 }
