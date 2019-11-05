@@ -27,6 +27,10 @@ class ASomAB_TPCharacter : public ACharacter
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera, meta = (AllowPrivateAccess = "true"))
 	class UCameraComponent* MainCamera;
 
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera, meta = (AllowPrivateAccess = "true"))
+	class USkeletalMeshComponent* WeaponMesh;
+
 public:
 	ASomAB_TPCharacter();
 
@@ -78,9 +82,14 @@ public:
 	UFUNCTION()
 	void OnAttackMontageEnded(class UAnimMontage* Montage, bool bInterrupted);
 
+	void SetWeapon(class ASomABWeapon* NewWeapon);
+
 private:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "SomABWorks", meta = (AllowPrivateAccess = "true"))
 	class USomABAnimInstance* TargetAnimBP;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "SomABWorks", meta = (AllowPrivateAccess = "true"))
+	class ASomABWeapon* CurrentWeapon;
 
 	// SomWorks :D // Movement
 	// Base turn rate, in deg/sec. Other scaling may affect final turn rate.
@@ -127,4 +136,6 @@ public:
 	FORCEINLINE class USpringArmComponent* GetMainCameraArm() const { return MainCameraArm; }
 	/** Returns FollowCamera subobject **/
 	FORCEINLINE class UCameraComponent* GetMainCamera() const { return MainCamera; }
+
+	FORCEINLINE bool CanSetWeapon() const { return CurrentWeapon == nullptr; }
 };

@@ -14,16 +14,19 @@
 #include "Animation/AnimInstance.h"
 #include "Animations/SomABAnimInstance.h"
 #include "DrawDebugHelpers.h"
+#include "Weapons/SomABWeapon.h"
 
 ASomAB_TPCharacter::ASomAB_TPCharacter()
 {
 	PrimaryActorTick.bCanEverTick = true;
 
 	static ConstructorHelpers::FObjectFinder<USkeletalMesh> SK_CardBoardMan(TEXT("SkeletalMesh'/Game/InfinityBladeWarriors/Character/CompleteCharacters/SK_CharM_Cardboard.SK_CharM_Cardboard'"));
+	static ConstructorHelpers::FObjectFinder<USkeletalMesh> SK_Weapon(TEXT("SkeletalMesh'/Game/InfinityBladeWeapons/Weapons/Blade/Swords/Blade_BlackKnight/SK_Blade_BlackKnight.SK_Blade_BlackKnight'"));
 	static ConstructorHelpers::FClassFinder<UAnimInstance> AnimBP_Warrior(TEXT("AnimBlueprint'/Game/Book/Animations/AnimBP_Warrior.AnimBP_Warrior_C'"));
 
 	MainCameraArm = CreateDefaultSubobject<USpringArmComponent>(TEXT("MainCameraArm"));
 	MainCamera = CreateDefaultSubobject<UCameraComponent>(TEXT("MainCamera"));
+	WeaponMesh = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("WeaponMesh"));
 
 	// Set size for collision capsule
 	GetCapsuleComponent()->InitCapsuleSize(42.f, 96.0f);
@@ -48,6 +51,15 @@ ASomAB_TPCharacter::ASomAB_TPCharacter()
 	// Create a follow camera	
 	MainCamera->SetupAttachment(MainCameraArm, USpringArmComponent::SocketName); // Attach the camera to the end of the boom and let the boom adjust to match the controller orientation
 	MainCamera->bUsePawnControlRotation = false; // Camera does not rotate relative to arm
+	
+	FName WeaponSocket(TEXT("BackWeapon"));
+	if (GetMesh()->DoesSocketExist(WeaponSocket))
+	{
+		WeaponMesh->SetupAttachment(GetMesh(), WeaponSocket);
+		if (SK_Weapon.Succeeded()) {
+			WeaponMesh->SetSkeletalMesh(SK_Weapon.Object);
+		}
+	}
 
 	// Note: The skeletal mesh and anim blueprint references on the Mesh component (inherited from Character) 
 	// are set in the derived blueprint asset named MyCharacter (to avoid direct content references in C++)
@@ -112,6 +124,13 @@ void ASomAB_TPCharacter::BeginPlay()
 {
 	Super::BeginPlay();
 
+	/*FName WeaponSocket(TEXT("hand_rSocket"));
+
+	ASomABWeapon* CurrentWeapon = GetWorld()->SpawnActor<ASomABWeapon>(FVector::ZeroVector, FRotator::ZeroRotator);
+
+	if (CurrentWeapon != nullptr) {
+		CurrentWeapon->AttachToComponent(GetMesh(), FAttachmentTransformRules::SnapToTargetIncludingScale, WeaponSocket);
+	}*/
 }
 
 void ASomAB_TPCharacter::EndPlay(const EEndPlayReason::Type EndPlayReason)
@@ -342,15 +361,7 @@ void ASomAB_TPCharacter::AttackCheck()
 	FColor DrawColor = bResult ? FColor::Green : FColor::Red;
 	float DebugLifeTime = 5.0f;
 
-	DrawDebugCapsule(
-		GetWorld(),
-		Center,
-		HalfHeight,
-		AttackRadius,
-		CapsuleRot,
-		DrawColor,
-		false,
-		DebugLifeTime);
+	DrawDebugCapsule( GetWorld(), Center, HalfHeight, AttackRadius, CapsuleRot, DrawColor, false, DebugLifeTime);
 
 #endif
 
@@ -390,4 +401,18 @@ void ASomAB_TPCharacter::OnAttackMontageEnded(UAnimMontage* Montage, bool bInter
 
 	bIsAttacking = false;
 	AttackEndComboState();
+}
+
+void ASomAB_TPCharacter::SetWeapon(ASomABWeapon* NewWeapon)
+{
+	ABCHECK(NewWeapon != nullptr && CurrentWeapon == nullptr);
+
+	FName WeaponSocket(TEXT("hand_rSocket"));
+
+	if (NewWeapon != nullptr)
+	{
+		NewWeapon->AttachToComponent(GetMesh(), FAttachmentTransformRules::SnapToTargetIncludingScale, WeaponSocket);
+		NewWeapon->SetOwner(this);
+		CurrentWeapon = NewWeapon;
+	}	
 }
