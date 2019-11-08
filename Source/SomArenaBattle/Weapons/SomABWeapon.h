@@ -11,7 +11,7 @@ class SOMARENABATTLE_API ASomABWeapon : public AActor
 {
 	GENERATED_BODY()
 	
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera, meta = (AllowPrivateAccess = "true"))
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "SomABWorks", meta = (AllowPrivateAccess = "true"))
 	class USkeletalMeshComponent* WeaponMesh;
 	
 public:	
@@ -25,9 +25,11 @@ public:
 	virtual void Tick(float DeltaTime) override;
 
 private:
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SomABWorks", meta = (AllowPrivateAccess = "true"))
+	float Damage;
 
 protected:
 	
 public:	
-
+	FORCEINLINE float GetWeaponDamage() const { return Damage; }
 };

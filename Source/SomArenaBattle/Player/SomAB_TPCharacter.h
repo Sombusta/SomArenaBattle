@@ -11,8 +11,11 @@ enum class EABControlType : uint8
 {
 	None = 0,
 	GTA,
-	Diablo
+	Diablo,
+	NPC
 };
+
+DECLARE_MULTICAST_DELEGATE(FOnAttackEndDelegate);
 
 UCLASS(config=Game)
 class ASomAB_TPCharacter : public ACharacter
@@ -26,10 +29,12 @@ class ASomAB_TPCharacter : public ACharacter
 	// Follow camera
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera, meta = (AllowPrivateAccess = "true"))
 	class UCameraComponent* MainCamera;
-
-
+	
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera, meta = (AllowPrivateAccess = "true"))
 	class USkeletalMeshComponent* WeaponMesh;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera, meta = (AllowPrivateAccess = "true"))
+	class USomABCharacterStatComponent* CharacterStat;
 
 public:
 	ASomAB_TPCharacter();
@@ -49,6 +54,8 @@ public:
 	// APawn interface
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 	// End of APawn interface
+
+	virtual void PossessedBy(AController* NewController) override;
 
 	// Apply damage to this actor.
 	virtual float TakeDamage(float Damage, struct FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser) override;
@@ -91,6 +98,9 @@ private:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "SomABWorks", meta = (AllowPrivateAccess = "true"))
 	class ASomABWeapon* CurrentWeapon;
 
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "SomABWorks", meta = (AllowPrivateAccess = "true"))
+	class UWidgetComponent* HPBarWidget;
+
 	// SomWorks :D // Movement
 	// Base turn rate, in deg/sec. Other scaling may affect final turn rate.
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera, meta = (AllowPrivateAccess = "true"))
@@ -102,6 +112,8 @@ private:
 		
 	EABControlType CurrentControlType = EABControlType::None;
 	FVector DirectionToMove = FVector::ZeroVector;
+
+	bool bIsDead;
 
 	// SomWorks :D // CameraArm Setting
 	float ArmLengthTo = 0.0f;
@@ -132,10 +144,14 @@ private:
 	float AttackRadius;
 
 public:
+	FOnAttackEndDelegate OnAttackEnd;
+
 	/** Returns CameraBoom subobject **/
 	FORCEINLINE class USpringArmComponent* GetMainCameraArm() const { return MainCameraArm; }
 	/** Returns FollowCamera subobject **/
 	FORCEINLINE class UCameraComponent* GetMainCamera() const { return MainCamera; }
 
 	FORCEINLINE bool CanSetWeapon() const { return CurrentWeapon == nullptr; }
+
+	FORCEINLINE bool IsDead() const { return bIsDead; }
 };

@@ -22,6 +22,8 @@ ASomABWeapon::ASomABWeapon()
 	if(SK_Weapon.Succeeded()) {
 		WeaponMesh->SetSkeletalMesh(SK_Weapon.Object);
 	}
+
+	Damage = 0.f;
 }
 
 // Called when the game starts or when spawned
@@ -37,4 +39,3 @@ void ASomABWeapon::Tick(float DeltaTime)
 	Super::Tick(DeltaTime);
 
 }
-

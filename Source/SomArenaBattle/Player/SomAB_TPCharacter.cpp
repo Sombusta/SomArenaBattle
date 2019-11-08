@@ -10,11 +10,16 @@
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/Controller.h"
 #include "GameFramework/SpringArmComponent.h"
+#include "Libraries/Components/SomABCharacterStatComponent.h"
 #include "Engine/SkeletalMesh.h"
 #include "Animation/AnimInstance.h"
 #include "Animations/SomABAnimInstance.h"
 #include "DrawDebugHelpers.h"
 #include "Weapons/SomABWeapon.h"
+#include "Components/WidgetComponent.h"
+#include "UI/SomABCharacterWidget.h"
+#include "AI/SomABAIController.h"
+#include "BrainComponent.h"
 
 ASomAB_TPCharacter::ASomAB_TPCharacter()
 {
@@ -23,10 +28,13 @@ ASomAB_TPCharacter::ASomAB_TPCharacter()
 	static ConstructorHelpers::FObjectFinder<USkeletalMesh> SK_CardBoardMan(TEXT("SkeletalMesh'/Game/InfinityBladeWarriors/Character/CompleteCharacters/SK_CharM_Cardboard.SK_CharM_Cardboard'"));
 	static ConstructorHelpers::FObjectFinder<USkeletalMesh> SK_Weapon(TEXT("SkeletalMesh'/Game/InfinityBladeWeapons/Weapons/Blade/Swords/Blade_BlackKnight/SK_Blade_BlackKnight.SK_Blade_BlackKnight'"));
 	static ConstructorHelpers::FClassFinder<UAnimInstance> AnimBP_Warrior(TEXT("AnimBlueprint'/Game/Book/Animations/AnimBP_Warrior.AnimBP_Warrior_C'"));
+	static ConstructorHelpers::FClassFinder<UUserWidget> WB_HPBar(TEXT("WidgetBlueprint'/Game/Book/UI/WB_HPBar.WB_HPBar_C'"));
 
 	MainCameraArm = CreateDefaultSubobject<USpringArmComponent>(TEXT("MainCameraArm"));
 	MainCamera = CreateDefaultSubobject<UCameraComponent>(TEXT("MainCamera"));
 	WeaponMesh = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("WeaponMesh"));
+	CharacterStat = CreateDefaultSubobject<USomABCharacterStatComponent>(TEXT("CharacterStat"));
+	HPBarWidget = CreateDefaultSubobject<UWidgetComponent>(TEXT("HPBarWidget"));
 
 	// Set size for collision capsule
 	GetCapsuleComponent()->InitCapsuleSize(42.f, 96.0f);
@@ -61,6 +69,15 @@ ASomAB_TPCharacter::ASomAB_TPCharacter()
 		}
 	}
 
+	HPBarWidget->SetupAttachment(GetMesh());
+	HPBarWidget->SetRelativeLocation(FVector(0.0f, 0.0f, 180.f));
+	HPBarWidget->SetWidgetSpace(EWidgetSpace::Screen);
+	if(WB_HPBar.Succeeded())
+	{
+		HPBarWidget->SetWidgetClass(WB_HPBar.Class);
+		HPBarWidget->SetDrawSize(FVector2D(150.f, 50.f));
+	}
+
 	// Note: The skeletal mesh and anim blueprint references on the Mesh component (inherited from Character) 
 	// are set in the derived blueprint asset named MyCharacter (to avoid direct content references in C++)
 	
@@ -90,6 +107,11 @@ ASomAB_TPCharacter::ASomAB_TPCharacter()
 
 	AttackRange = 200.f;
 	AttackRadius = 50.f;
+
+	AIControllerClass = ASomABAIController::StaticClass();
+	AutoPossessAI = EAutoPossessAI::PlacedInWorldOrSpawned;		
+
+	bIsDead = false;
 }
 
 void ASomAB_TPCharacter::PostInitializeComponents()
@@ -118,11 +140,33 @@ void ASomAB_TPCharacter::PostInitializeComponents()
 				}
 			});		
 	}
+
+	CharacterStat->OnHPIsZero.AddLambda([this]() -> void
+		{
+			ABLOG(Warning, TEXT("OnHPIsZero %d"), 0);
+			TargetAnimBP->SetDeadState();
+			SetActorEnableCollision(false);
+			bIsDead = true;
+			if (CurrentControlType == EABControlType::NPC)
+			{
+				ASomABAIController* AIController = Cast<ASomABAIController>(GetController());
+				AIController->GetBrainComponent()->StopLogic(TEXT("Dead"));
+			}
+		}
+	);
 }
 
 void ASomAB_TPCharacter::BeginPlay()
 {
 	Super::BeginPlay();
+
+	// SomWorks :D // 4.21 부터 UI 초기화 시점이 PostInitializeComponents -> BeginPlay로 변경
+	USomABCharacterWidget* CharacterWidget = Cast<USomABCharacterWidget>(HPBarWidget->GetUserWidgetObject());
+
+	if (CharacterWidget != nullptr)
+	{
+		CharacterWidget->BindCharacterStat(CharacterStat);
+	}
 
 	/*FName WeaponSocket(TEXT("hand_rSocket"));
 
@@ -185,6 +229,22 @@ void ASomAB_TPCharacter::SetupPlayerInputComponent(class UInputComponent* Player
 	}
 }
 
+void ASomAB_TPCharacter::PossessedBy(AController* NewController)
+{
+	Super::PossessedBy(NewController);
+
+	if (IsPlayerControlled())
+	{
+		SetControlMode(EABControlType::GTA);
+		GetCharacterMovement()->MaxWalkSpeed = 600.f;
+	}
+	else
+	{
+		SetControlMode(EABControlType::NPC);
+		GetCharacterMovement()->MaxWalkSpeed = 300.f;
+	}
+}
+
 float ASomAB_TPCharacter::TakeDamage(float Damage, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser)
 {
 	float Result = Super::TakeDamage(Damage, DamageEvent, EventInstigator, DamageCauser);
@@ -193,8 +253,10 @@ float ASomAB_TPCharacter::TakeDamage(float Damage, FDamageEvent const& DamageEve
 
 	if (Result > 0.0f)
 	{
-		TargetAnimBP->SetDeadState();
-		SetActorEnableCollision(false);
+		/*TargetAnimBP->SetDeadState();
+		SetActorEnableCollision(false);*/
+
+		CharacterStat->SetDamage(Result);
 	}
 
 	return Result;
@@ -292,6 +354,12 @@ void ASomAB_TPCharacter::SetControlMode(EABControlType NewControlMode)
 		GetCharacterMovement()->bUseControllerDesiredRotation = true;
 		GetCharacterMovement()->RotationRate = FRotator(0.0f, 720.f, 0.0f);
 		break;
+	case EABControlType::NPC:
+		bUseControllerRotationYaw = false;
+		GetCharacterMovement()->bUseControllerDesiredRotation = false;
+		GetCharacterMovement()->bOrientRotationToMovement = true;
+		GetCharacterMovement()->RotationRate = FRotator(0.0f, 480.f, 0.f);
+		break;
 	}
 }
 
@@ -372,7 +440,10 @@ void ASomAB_TPCharacter::AttackCheck()
 			ABLOG(Warning, TEXT("Hit Actor Name : %s"), *HitResult.Actor->GetName());
 			
 			FDamageEvent DamageEvent;
-			HitResult.Actor->TakeDamage(50.0f, DamageEvent, GetController(), this);
+
+			float DamageResult = CurrentWeapon != nullptr ? CharacterStat->GetAttack() + CurrentWeapon->GetWeaponDamage() : CharacterStat->GetAttack();
+
+			HitResult.Actor->TakeDamage(DamageResult, DamageEvent, GetController(), this);
 		}
 	}
 }
@@ -401,6 +472,8 @@ void ASomAB_TPCharacter::OnAttackMontageEnded(UAnimMontage* Montage, bool bInter
 
 	bIsAttacking = false;
 	AttackEndComboState();
+	
+	OnAttackEnd.Broadcast();
 }
 
 void ASomAB_TPCharacter::SetWeapon(ASomABWeapon* NewWeapon)
