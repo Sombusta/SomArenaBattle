@@ -9,6 +9,6 @@ public class SomArenaBattleEditorTarget : TargetRules
 	{
 		Type = TargetType.Editor;
 
-		ExtraModuleNames.AddRange( new string[] { "SomArenaBattle" } );
+		ExtraModuleNames.AddRange( new string[] { "SomArenaBattle", "SomArenaBattleSetting" } );
 	}
 }

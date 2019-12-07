@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "Engine/GameInstance.h"
 #include "Libraries/Variables/SomABData.h"
+#include "Engine/StreamableManager.h"
 #include "SomABGameInstance.generated.h"
 
 UCLASS()
@@ -18,7 +19,7 @@ public:
 	// virtual function to allow custom GameInstances an opportunity to set up what it needs
 	virtual void Init() override;
 	
-	
+	FSomABCharacterData* GetABCharacterData(int32 Level);
 
 private:
 	class UDataTable* ABCharacterTable;
@@ -26,6 +27,6 @@ private:
 protected:
 
 public:
-	FSomABCharacterData* GetABCharacterData(int32 Level);
-
+	FStreamableManager StreamableManager;
+	
 };

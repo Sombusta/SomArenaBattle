@@ -9,6 +9,6 @@ public class SomArenaBattleTarget : TargetRules
 	{
 		Type = TargetType.Game;
 
-		ExtraModuleNames.AddRange( new string[] { "SomArenaBattle" } );
+		ExtraModuleNames.AddRange( new string[] { "SomArenaBattle", "SomArenaBattleSetting" } );
 	}
 }

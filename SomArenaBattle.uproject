@@ -11,7 +11,17 @@
 			"AdditionalDependencies": [
 				"Engine",
 				"UMG",
-				"AIModule"
+				"AIModule",
+				"SomArenaBattleSetting",
+				"CoreUObject"
+			]
+		},
+		{
+			"Name": "SomArenaBattleSetting",
+			"Type": "Runtime",
+			"LoadingPhase": "PreDefault",
+			"AdditionalDependencies": [
+				"CoreUObject"
 			]
 		}
 	],

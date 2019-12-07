@@ -20,6 +20,8 @@
 #include "UI/SomABCharacterWidget.h"
 #include "AI/SomABAIController.h"
 #include "BrainComponent.h"
+#include "Core/SomABCharacterSetting.h"
+#include "Core/SomABGameInstance.h"
 
 ASomAB_TPCharacter::ASomAB_TPCharacter()
 {
@@ -29,6 +31,16 @@ ASomAB_TPCharacter::ASomAB_TPCharacter()
 	static ConstructorHelpers::FObjectFinder<USkeletalMesh> SK_Weapon(TEXT("SkeletalMesh'/Game/InfinityBladeWeapons/Weapons/Blade/Swords/Blade_BlackKnight/SK_Blade_BlackKnight.SK_Blade_BlackKnight'"));
 	static ConstructorHelpers::FClassFinder<UAnimInstance> AnimBP_Warrior(TEXT("AnimBlueprint'/Game/Book/Animations/AnimBP_Warrior.AnimBP_Warrior_C'"));
 	static ConstructorHelpers::FClassFinder<UUserWidget> WB_HPBar(TEXT("WidgetBlueprint'/Game/Book/UI/WB_HPBar.WB_HPBar_C'"));
+
+	auto DefaultSetting = GetDefault<USomABCharacterSetting>();
+
+	if (DefaultSetting->CharacterAssets.Num() > 0)
+	{
+		for (auto CharacterAsset : DefaultSetting->CharacterAssets)
+		{
+			ABLOG(Warning, TEXT("CharacterAsset : %s"), *CharacterAsset.ToString());
+		}
+	}
 
 	MainCameraArm = CreateDefaultSubobject<USpringArmComponent>(TEXT("MainCameraArm"));
 	MainCamera = CreateDefaultSubobject<UCameraComponent>(TEXT("MainCamera"));
@@ -175,6 +187,21 @@ void ASomAB_TPCharacter::BeginPlay()
 	if (CurrentWeapon != nullptr) {
 		CurrentWeapon->AttachToComponent(GetMesh(), FAttachmentTransformRules::SnapToTargetIncludingScale, WeaponSocket);
 	}*/
+
+	if (!IsPlayerControlled())
+	{
+		auto DefaultSetting = GetDefault<USomABCharacterSetting>();
+		int32 RandIndex = FMath::RandRange(0, DefaultSetting->CharacterAssets.Num() - 1);
+
+		CharacterAssetToLoad = DefaultSetting->CharacterAssets[RandIndex];
+
+		USomABGameInstance* SomABGameInstance = Cast<USomABGameInstance>(GetGameInstance());
+
+		if (SomABGameInstance != nullptr)
+		{
+			AssetStreamingHandle = SomABGameInstance->StreamableManager.RequestAsyncLoad(CharacterAssetToLoad, FStreamableDelegate::CreateUObject(this, &ASomAB_TPCharacter::OnAssetsLoadCompleted));
+		}
+	}
 }
 
 void ASomAB_TPCharacter::EndPlay(const EEndPlayReason::Type EndPlayReason)
@@ -488,4 +515,16 @@ void ASomAB_TPCharacter::SetWeapon(ASomABWeapon* NewWeapon)
 		NewWeapon->SetOwner(this);
 		CurrentWeapon = NewWeapon;
 	}	
+}
+
+void ASomAB_TPCharacter::OnAssetsLoadCompleted()
+{
+	AssetStreamingHandle->ReleaseHandle();
+
+	TSoftObjectPtr<USkeletalMesh> LoadedAssetPath(CharacterAssetToLoad);
+
+	if (LoadedAssetPath.IsValid())
+	{
+		GetMesh()->SetSkeletalMesh(LoadedAssetPath.Get());
+	}
 }

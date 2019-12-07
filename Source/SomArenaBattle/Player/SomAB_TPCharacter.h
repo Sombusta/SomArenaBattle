@@ -92,6 +92,9 @@ public:
 	void SetWeapon(class ASomABWeapon* NewWeapon);
 
 private:
+	void OnAssetsLoadCompleted();
+
+private:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "SomABWorks", meta = (AllowPrivateAccess = "true"))
 	class USomABAnimInstance* TargetAnimBP;
 
@@ -142,6 +145,9 @@ private:
 
 	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "SomABWorks", meta = (AllowPrivateAccess = "true"))
 	float AttackRadius;
+
+	FSoftObjectPath CharacterAssetToLoad = FSoftObjectPath(nullptr);
+	TSharedPtr<struct FStreamableHandle> AssetStreamingHandle;
 
 public:
 	FOnAttackEndDelegate OnAttackEnd;
