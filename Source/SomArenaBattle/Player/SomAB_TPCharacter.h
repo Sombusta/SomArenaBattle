@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Character.h"
+#include "Libraries/Variables/SomABVariables.h"
 #include "SomAB_TPCharacter.generated.h"
 
 UENUM(BlueprintType)
@@ -91,6 +92,8 @@ public:
 
 	void SetWeapon(class ASomABWeapon* NewWeapon);
 
+	void SetCharacterState(ECharacterState NewState);
+
 private:
 	void OnAssetsLoadCompleted();
 
@@ -146,8 +149,26 @@ private:
 	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "SomABWorks", meta = (AllowPrivateAccess = "true"))
 	float AttackRadius;
 
+	int32 AssetIndex = 0;
 	FSoftObjectPath CharacterAssetToLoad = FSoftObjectPath(nullptr);
 	TSharedPtr<struct FStreamableHandle> AssetStreamingHandle;
+		
+	UPROPERTY(Transient, VisibleInstanceOnly, BlueprintReadOnly, Category = "SomABWorks|Variables", meta = (AllowPrivateAccess = "true"))
+	ECharacterState CurrentState;
+
+	UPROPERTY(Transient, VisibleInstanceOnly, BlueprintReadOnly, Category = "SomABWorks|Variables", meta = (AllowPrivateAccess = "true"))
+	bool bIsPlayer;
+
+	UPROPERTY()
+	class ASomABAIController* SomAIController;
+
+	UPROPERTY()
+	class ASomABPlayerController* SomABPlayerController;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SomABWorks|Variables", meta = (AllowPrivateAccess = "true"))
+	float DeadTimer;
+
+	FTimerHandle DeadTimerHandle;
 
 public:
 	FOnAttackEndDelegate OnAttackEnd;
@@ -160,4 +181,6 @@ public:
 	FORCEINLINE bool CanSetWeapon() const { return CurrentWeapon == nullptr; }
 
 	FORCEINLINE bool IsDead() const { return bIsDead; }
+
+	FORCEINLINE ECharacterState GetCharacterState() const { return CurrentState; }
 };

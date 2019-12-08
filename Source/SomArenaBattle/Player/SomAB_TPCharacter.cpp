@@ -22,6 +22,10 @@
 #include "BrainComponent.h"
 #include "Core/SomABCharacterSetting.h"
 #include "Core/SomABGameInstance.h"
+#include "Core/SomABPlayerController.h"
+#include "Core/SomABPlayerState.h"
+#include "Engine/World.h"
+#include "TimerManager.h"
 
 ASomAB_TPCharacter::ASomAB_TPCharacter()
 {
@@ -124,6 +128,14 @@ ASomAB_TPCharacter::ASomAB_TPCharacter()
 	AutoPossessAI = EAutoPossessAI::PlacedInWorldOrSpawned;		
 
 	bIsDead = false;
+
+	AssetIndex = 4;
+
+	SetActorHiddenInGame(true);
+	HPBarWidget->SetHiddenInGame(true);
+	bCanBeDamaged = false;
+
+	DeadTimer = 5.0f;
 }
 
 void ASomAB_TPCharacter::PostInitializeComponents()
@@ -172,6 +184,19 @@ void ASomAB_TPCharacter::BeginPlay()
 {
 	Super::BeginPlay();
 
+	bIsPlayer = IsPlayerControlled();
+
+	if (bIsPlayer)
+	{
+		SomABPlayerController = Cast<ASomABPlayerController>(GetController());
+		ABCHECK(SomABPlayerController != nullptr);
+	}
+	else
+	{
+		SomAIController = Cast<ASomABAIController>(GetController());
+		ABCHECK(SomAIController != nullptr);
+	}
+
 	// SomWorks :D // 4.21 부터 UI 초기화 시점이 PostInitializeComponents -> BeginPlay로 변경
 	USomABCharacterWidget* CharacterWidget = Cast<USomABCharacterWidget>(HPBarWidget->GetUserWidgetObject());
 
@@ -188,20 +213,18 @@ void ASomAB_TPCharacter::BeginPlay()
 		CurrentWeapon->AttachToComponent(GetMesh(), FAttachmentTransformRules::SnapToTargetIncludingScale, WeaponSocket);
 	}*/
 
-	if (!IsPlayerControlled())
-	{
-		auto DefaultSetting = GetDefault<USomABCharacterSetting>();
-		int32 RandIndex = FMath::RandRange(0, DefaultSetting->CharacterAssets.Num() - 1);
+	auto DefaultSetting = GetDefault<USomABCharacterSetting>();
 
-		CharacterAssetToLoad = DefaultSetting->CharacterAssets[RandIndex];
+	AssetIndex = bIsPlayer ? 4 : FMath::RandRange(0, DefaultSetting->CharacterAssets.Num() - 1);
 
-		USomABGameInstance* SomABGameInstance = Cast<USomABGameInstance>(GetGameInstance());
+	CharacterAssetToLoad = DefaultSetting->CharacterAssets[AssetIndex];
 
-		if (SomABGameInstance != nullptr)
-		{
-			AssetStreamingHandle = SomABGameInstance->StreamableManager.RequestAsyncLoad(CharacterAssetToLoad, FStreamableDelegate::CreateUObject(this, &ASomAB_TPCharacter::OnAssetsLoadCompleted));
-		}
-	}
+	USomABGameInstance* SomABGameInstance = Cast<USomABGameInstance>(GetGameInstance());
+	ABCHECK(SomABGameInstance != nullptr);	
+
+	AssetStreamingHandle = SomABGameInstance->StreamableManager.RequestAsyncLoad(CharacterAssetToLoad, FStreamableDelegate::CreateUObject(this, &ASomAB_TPCharacter::OnAssetsLoadCompleted));
+
+	SetCharacterState(ECharacterState::Loading);
 }
 
 void ASomAB_TPCharacter::EndPlay(const EEndPlayReason::Type EndPlayReason)
@@ -517,14 +540,100 @@ void ASomAB_TPCharacter::SetWeapon(ASomABWeapon* NewWeapon)
 	}	
 }
 
+void ASomAB_TPCharacter::SetCharacterState(ECharacterState NewState)
+{
+	ABCHECK(CurrentState != NewState);
+	CurrentState = NewState;
+
+	USomABCharacterWidget* CharacterWidget = nullptr;
+
+	switch (CurrentState)
+	{
+	case ECharacterState::Loading:
+		
+		if (bIsPlayer)
+		{
+			DisableInput(SomABPlayerController);
+
+			ASomABPlayerState* SomABPlayerState = Cast<ASomABPlayerState>(GetPlayerState());
+			ABCHECK(SomABPlayerState != nullptr);
+			CharacterStat->SetNewLevel(SomABPlayerState->GetCharacterLevel());
+		}
+
+		SetActorHiddenInGame(true);
+		HPBarWidget->SetHiddenInGame(true);
+		bCanBeDamaged = false;
+		break;
+
+	case ECharacterState::Ready:
+		SetActorHiddenInGame(false);
+		HPBarWidget->SetHiddenInGame(false);
+		bCanBeDamaged = true;
+
+		CharacterStat->OnHPIsZero.AddLambda([this]() -> void {
+			SetCharacterState(ECharacterState::Dead);
+			});
+
+		CharacterWidget = Cast<USomABCharacterWidget>(HPBarWidget->GetUserWidgetObject());
+		ABCHECK(CharacterWidget != nullptr);
+		CharacterWidget->BindCharacterStat(CharacterStat);
+
+		if (bIsPlayer)
+		{
+			SetControlMode(EABControlType::GTA);
+			GetCharacterMovement()->MaxWalkSpeed = 600.0f;
+			EnableInput(SomABPlayerController);
+		}
+		else
+		{
+			SetControlMode(EABControlType::NPC);
+			GetCharacterMovement()->MaxWalkSpeed = 400.0f;
+			SomAIController->RunAI();
+		}
+
+		break;
+
+	case ECharacterState::Dead:
+		SetActorEnableCollision(false);
+		SetActorHiddenInGame(false);
+		HPBarWidget->SetHiddenInGame(true);
+		TargetAnimBP->SetDeadState();
+		bCanBeDamaged = false;
+
+		if (bIsPlayer)
+		{
+			DisableInput(SomABPlayerController);
+		}
+		else
+		{
+			SomAIController->StopAI();
+		}
+
+		GetWorld()->GetTimerManager().SetTimer(DeadTimerHandle, FTimerDelegate::CreateLambda([this]() -> void {
+
+			if (bIsPlayer)
+			{
+				SomABPlayerController->RestartLevel();
+			}
+			else
+			{
+				Destroy();
+			}
+
+			}), DeadTimer, false);		
+
+		break;
+	}
+}
+
 void ASomAB_TPCharacter::OnAssetsLoadCompleted()
 {
 	AssetStreamingHandle->ReleaseHandle();
 
 	TSoftObjectPtr<USkeletalMesh> LoadedAssetPath(CharacterAssetToLoad);
 
-	if (LoadedAssetPath.IsValid())
-	{
-		GetMesh()->SetSkeletalMesh(LoadedAssetPath.Get());
-	}
+	ABCHECK(LoadedAssetPath.IsValid());
+
+	GetMesh()->SetSkeletalMesh(LoadedAssetPath.Get());
+	SetCharacterState(ECharacterState::Ready);
 }

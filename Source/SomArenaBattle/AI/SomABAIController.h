@@ -18,6 +18,9 @@ public:
 
 	virtual void OnUnPossess() override;
 	
+	void RunAI();
+	void StopAI();
+
 private:
 	void OnRepeatTimer();
 

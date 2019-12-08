@@ -4,6 +4,7 @@
 #include "SomArenaBattle.h"
 #include "Player/SomAB_TPCharacter.h"
 #include "Core/SomABPlayerController.h"
+#include "Core/SomABPlayerState.h"
 #include "UObject/ConstructorHelpers.h"
 
 ASomABGameMode::ASomABGameMode()
@@ -19,6 +20,8 @@ ASomABGameMode::ASomABGameMode()
 	}
 
 	PlayerControllerClass = ASomABPlayerController::StaticClass();
+
+	PlayerStateClass = ASomABPlayerState::StaticClass();
 }
 
 void ASomABGameMode::PostLogin(APlayerController* NewPlayer)
@@ -26,4 +29,9 @@ void ASomABGameMode::PostLogin(APlayerController* NewPlayer)
 	ABLOG(Warning, TEXT("PostLogin %s"), *FString(TEXT("Begin")));
 	Super::PostLogin(NewPlayer);
 	ABLOG(Warning, TEXT("PostLogin %s"), *FString(TEXT("End")));
+
+	ASomABPlayerState* SomABPlayerState = Cast<ASomABPlayerState>(NewPlayer->PlayerState);
+	ABCHECK(SomABPlayerState != nullptr);
+
+	SomABPlayerState->InitPlayerData();
 }

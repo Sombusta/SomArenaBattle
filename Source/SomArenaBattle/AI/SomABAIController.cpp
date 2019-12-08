@@ -38,15 +38,7 @@ void ASomABAIController::OnPossess(APawn* InPawn)
 
 	// GetWorld()->GetTimerManager().SetTimer(RepeatTimerHandle, this, &ASomABAIController::OnRepeatTimer, true);
 
-	if (UseBlackboard(BB_Asset, Blackboard))
-	{
-		Blackboard->SetValueAsVector(HomePosKey, InPawn->GetActorLocation());
-
-		if (!RunBehaviorTree(BT_Asset))
-		{
-			ABLOG(Error, TEXT("AIController couldn't run behavior tree!! %d"), 0);
-		}
-	}	
+	
 }
 
 void ASomABAIController::OnUnPossess()
@@ -55,6 +47,29 @@ void ASomABAIController::OnUnPossess()
 
 	// GetWorld()->GetTimerManager().ClearTimer(RepeatTimerHandle);
 
+}
+
+void ASomABAIController::RunAI()
+{
+	if (UseBlackboard(BB_Asset, Blackboard))
+	{
+		Blackboard->SetValueAsVector(HomePosKey, GetPawn()->GetActorLocation());
+
+		if (!RunBehaviorTree(BT_Asset))
+		{
+			ABLOG(Error, TEXT("AIController couldn't run behavior tree!! %d"), 0);
+		}
+	}
+}
+
+void ASomABAIController::StopAI()
+{
+	auto BehaviorTreeComponent = Cast<UBehaviorTreeComponent>(BrainComponent);
+	
+	if (BehaviorTreeComponent != nullptr)
+	{
+		BehaviorTreeComponent->StopTree(EBTStopMode::Safe);
+	}
 }
 
 void ASomABAIController::OnRepeatTimer()
