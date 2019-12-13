@@ -2,7 +2,7 @@
 	"BuildId": "8386587",
 	"Modules": 
 	{
-		"SomArenaBattle": "UE4Editor-SomArenaBattle-9809.dll",
+		"SomArenaBattle": "UE4Editor-SomArenaBattle.dll",
 		"SomArenaBattleSetting": "UE4Editor-SomArenaBattleSetting.dll"
 	}
 }

@@ -26,6 +26,7 @@
 #include "Core/SomABPlayerState.h"
 #include "Engine/World.h"
 #include "TimerManager.h"
+#include "UI/SomABHUDWidget.h"
 
 ASomAB_TPCharacter::ASomAB_TPCharacter()
 {
@@ -37,7 +38,7 @@ ASomAB_TPCharacter::ASomAB_TPCharacter()
 	static ConstructorHelpers::FClassFinder<UUserWidget> WB_HPBar(TEXT("WidgetBlueprint'/Game/Book/UI/WB_HPBar.WB_HPBar_C'"));
 
 	auto DefaultSetting = GetDefault<USomABCharacterSetting>();
-
+	
 	if (DefaultSetting->CharacterAssets.Num() > 0)
 	{
 		for (auto CharacterAsset : DefaultSetting->CharacterAssets)
@@ -58,13 +59,14 @@ ASomAB_TPCharacter::ASomAB_TPCharacter()
 
 	// Set mesh location and rotation
 	GetMesh()->SetRelativeLocationAndRotation(FVector(0.0f, 0.0f, -88.0f), FRotator(0.0f, -90.0f, 0.0f));
-	if (SK_CardBoardMan.Succeeded())
+	if (SK_CardBoardMan.Succeeded()) {
+		GetMesh()->SetSkeletalMesh(SK_CardBoardMan.Object);		
+	}
+
+	if (AnimBP_Warrior.Succeeded()) 
 	{
-		GetMesh()->SetSkeletalMesh(SK_CardBoardMan.Object);
 		GetMesh()->SetAnimationMode(EAnimationMode::AnimationBlueprint);
-		if (AnimBP_Warrior.Succeeded()) {
-			GetMesh()->SetAnimInstanceClass(AnimBP_Warrior.Class);
-		}
+		GetMesh()->SetAnimInstanceClass(AnimBP_Warrior.Class);
 	}
 
 	// Create a camera boom (pulls in towards the player if there is a collision)
@@ -129,7 +131,7 @@ ASomAB_TPCharacter::ASomAB_TPCharacter()
 
 	bIsDead = false;
 
-	AssetIndex = 4;
+	AssetIndex = 3;
 
 	SetActorHiddenInGame(true);
 	HPBarWidget->SetHiddenInGame(true);
@@ -215,7 +217,7 @@ void ASomAB_TPCharacter::BeginPlay()
 
 	auto DefaultSetting = GetDefault<USomABCharacterSetting>();
 
-	AssetIndex = bIsPlayer ? 4 : FMath::RandRange(0, DefaultSetting->CharacterAssets.Num() - 1);
+	AssetIndex = bIsPlayer ? 3 : FMath::RandRange(0, DefaultSetting->CharacterAssets.Num() - 1);
 
 	CharacterAssetToLoad = DefaultSetting->CharacterAssets[AssetIndex];
 
@@ -300,13 +302,24 @@ float ASomAB_TPCharacter::TakeDamage(float Damage, FDamageEvent const& DamageEve
 	float Result = Super::TakeDamage(Damage, DamageEvent, EventInstigator, DamageCauser);
 
 	ABLOG(Warning, TEXT("Actor : %s took Damage : %f"), *GetName(), Result);
-
+	 
 	if (Result > 0.0f)
 	{
 		/*TargetAnimBP->SetDeadState();
 		SetActorEnableCollision(false);*/
 
 		CharacterStat->SetDamage(Result);
+
+		if (CurrentState == ECharacterState::Dead)
+		{
+			if (EventInstigator->IsPlayerController())
+			{
+				ASomABPlayerController* CurrentPlayerController = Cast<ASomABPlayerController>(EventInstigator);
+				ABCHECK(CurrentPlayerController != nullptr, 0.0f);
+
+				CurrentPlayerController->NPCKill(this);
+			}
+		}
 	}
 
 	return Result;
@@ -555,6 +568,8 @@ void ASomAB_TPCharacter::SetCharacterState(ECharacterState NewState)
 		{
 			DisableInput(SomABPlayerController);
 
+			SomABPlayerController->GetHUDWidget()->BindCharacterStat(CharacterStat);
+
 			ASomABPlayerState* SomABPlayerState = Cast<ASomABPlayerState>(GetPlayerState());
 			ABCHECK(SomABPlayerState != nullptr);
 			CharacterStat->SetNewLevel(SomABPlayerState->GetCharacterLevel());
@@ -636,4 +651,9 @@ void ASomAB_TPCharacter::OnAssetsLoadCompleted()
 
 	GetMesh()->SetSkeletalMesh(LoadedAssetPath.Get());
 	SetCharacterState(ECharacterState::Ready);
+}
+
+int32 ASomAB_TPCharacter::GetExp() const
+{
+	return CharacterStat->GetDropExp();
 }

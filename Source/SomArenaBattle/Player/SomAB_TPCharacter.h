@@ -93,7 +93,7 @@ public:
 	void SetWeapon(class ASomABWeapon* NewWeapon);
 
 	void SetCharacterState(ECharacterState NewState);
-
+	
 private:
 	void OnAssetsLoadCompleted();
 
@@ -106,7 +106,7 @@ private:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "SomABWorks", meta = (AllowPrivateAccess = "true"))
 	class UWidgetComponent* HPBarWidget;
-
+		
 	// SomWorks :D // Movement
 	// Base turn rate, in deg/sec. Other scaling may affect final turn rate.
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera, meta = (AllowPrivateAccess = "true"))
@@ -172,6 +172,8 @@ private:
 
 public:
 	FOnAttackEndDelegate OnAttackEnd;
+
+	int32 GetExp() const;
 
 	/** Returns CameraBoom subobject **/
 	FORCEINLINE class USpringArmComponent* GetMainCameraArm() const { return MainCameraArm; }

@@ -32,4 +32,19 @@ public:
 	// Called when this controller possesses a pawn
 	virtual void OnPossess(APawn* InPawn) override;
 
+	void NPCKill(class ASomAB_TPCharacter* KilledNPC) const;
+
+private:
+	UPROPERTY()
+	class USomABHUDWidget* HUDWidget;
+
+	UPROPERTY()
+	class ASomABPlayerState* SomABPlayerState;
+
+protected:
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "SomABWorks|Variables", meta = (BlueprintProtected = "true"))
+	TSubclassOf<class USomABHUDWidget> HUDWidgetClass;
+	
+public:
+	FORCEINLINE class USomABHUDWidget* GetHUDWidget() const { return HUDWidget; }
 };

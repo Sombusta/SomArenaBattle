@@ -6,6 +6,8 @@
 #include "GameFramework/PlayerState.h"
 #include "SomABPlayerState.generated.h"
 
+DECLARE_MULTICAST_DELEGATE(FOnPlayerStateChangedDelegate);
+
 UCLASS()
 class SOMARENABATTLE_API ASomABPlayerState : public APlayerState
 {
@@ -16,14 +18,29 @@ public:
 
 	void InitPlayerData();
 
+	bool AddExp(int32 IncomeExp);
+
+	float GetExpRatio() const;
+
+private:
+	void SetCharacterLevel(int32 NewCharacterLevel);
+
+private:
+	struct FSomABCharacterData* CurrentStatData;
+
 protected:
-	UPROPERTY(Transient, Category = "SomABWorks|Variables", meta = (BlueprintProtected = "true"))
+	UPROPERTY(Transient)
 	int32 GameScore;
 
-	UPROPERTY(Transient, Category = "SomABWorks|Variables", meta = (BlueprintProtected = "true"))
+	UPROPERTY(Transient)
 	int32 CharacterLevel;
 
+	UPROPERTY(Transient)
+	int32 Exp;
+
 public:
+	FOnPlayerStateChangedDelegate OnPlayerStateChanged;
+
 	FORCEINLINE int32 GetGameScore() const { return GameScore; }
 	FORCEINLINE int32 GetCharacterLevel() const { return CharacterLevel; }
 };
