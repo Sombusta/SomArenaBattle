@@ -34,6 +34,8 @@ public:
 
 	void NPCKill(class ASomAB_TPCharacter* KilledNPC) const;
 
+	void AddGameScore() const;
+
 private:
 	UPROPERTY()
 	class USomABHUDWidget* HUDWidget;

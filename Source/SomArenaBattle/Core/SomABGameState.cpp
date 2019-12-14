@@ -2,3 +2,12 @@
 
 #include "SomABGameState.h"
 
+ASomABGameState::ASomABGameState()
+{
+	TotalGameScore = 0;
+}
+
+void ASomABGameState::AddGameScore()
+{
+	TotalGameScore++;
+}

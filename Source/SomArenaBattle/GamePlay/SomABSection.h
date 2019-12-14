@@ -53,6 +53,9 @@ private:
 	
 	void OnNPCSpawn();
 
+	UFUNCTION()
+	void OnKeyNPCDestroyed(AActor* DestroyedActor);
+
 protected:
 
 private:

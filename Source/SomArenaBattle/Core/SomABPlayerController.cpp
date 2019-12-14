@@ -68,3 +68,8 @@ void ASomABPlayerController::NPCKill(ASomAB_TPCharacter* KilledNPC) const
 {
 	SomABPlayerState->AddExp(KilledNPC->GetExp());
 }
+
+void ASomABPlayerController::AddGameScore() const
+{
+	SomABPlayerState->AddGameScore();
+}

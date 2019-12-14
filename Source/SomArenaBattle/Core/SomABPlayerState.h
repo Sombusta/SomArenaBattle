@@ -22,6 +22,8 @@ public:
 
 	float GetExpRatio() const;
 
+	void AddGameScore();
+
 private:
 	void SetCharacterLevel(int32 NewCharacterLevel);
 

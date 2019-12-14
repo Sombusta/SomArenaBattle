@@ -50,6 +50,12 @@ float ASomABPlayerState::GetExpRatio() const
 	return Result;
 }
 
+void ASomABPlayerState::AddGameScore()
+{
+	GameScore++;
+	OnPlayerStateChanged.Broadcast();
+}
+
 void ASomABPlayerState::SetCharacterLevel(int32 NewCharacterLevel)
 {
 	USomABGameInstance* SomABGameInstance = Cast<USomABGameInstance>(GetGameInstance());

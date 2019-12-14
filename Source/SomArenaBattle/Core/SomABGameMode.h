@@ -14,6 +14,16 @@ class ASomABGameMode : public AGameModeBase
 public:
 	ASomABGameMode();
 
+	// Called when initialize complete Session
+	virtual void PostInitializeComponents() override;
+
 	// Called after a successful login.
 	virtual void PostLogin(class APlayerController* NewPlayer) override;
+
+	void AddScore(class ASomABPlayerController* ScoredPlayer);
+
+private:
+	UPROPERTY()
+	class ASomABGameState* SomABGameState;
+
 };

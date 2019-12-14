@@ -59,12 +59,9 @@ ASomAB_TPCharacter::ASomAB_TPCharacter()
 
 	// Set mesh location and rotation
 	GetMesh()->SetRelativeLocationAndRotation(FVector(0.0f, 0.0f, -88.0f), FRotator(0.0f, -90.0f, 0.0f));
-	if (SK_CardBoardMan.Succeeded()) {
-		GetMesh()->SetSkeletalMesh(SK_CardBoardMan.Object);		
-	}
-
-	if (AnimBP_Warrior.Succeeded()) 
+	if (SK_CardBoardMan.Succeeded()) 
 	{
+		GetMesh()->SetSkeletalMesh(SK_CardBoardMan.Object);		
 		GetMesh()->SetAnimationMode(EAnimationMode::AnimationBlueprint);
 		GetMesh()->SetAnimInstanceClass(AnimBP_Warrior.Class);
 	}
@@ -578,6 +575,7 @@ void ASomAB_TPCharacter::SetCharacterState(ECharacterState NewState)
 		SetActorHiddenInGame(true);
 		HPBarWidget->SetHiddenInGame(true);
 		bCanBeDamaged = false;
+				
 		break;
 
 	case ECharacterState::Ready:

@@ -10,6 +10,8 @@
 #include "GamePlay/SomABItemBox.h"
 #include "Engine/World.h"
 #include "TimerManager.h"
+#include "Core/SomABPlayerController.h"
+#include "Core/SomABGameMode.h"
 
 // Sets default values
 ASomABSection::ASomABSection()
@@ -206,5 +208,28 @@ void ASomABSection::OnGateTriggerBeginOverlap(UPrimitiveComponent* OverlappedCom
 
 void ASomABSection::OnNPCSpawn()
 {
-	GetWorld()->SpawnActor<ASomAB_TPCharacter>(GetActorLocation() + FVector::UpVector * 88.f, FRotator::ZeroRotator);
+	GetWorld()->GetTimerManager().ClearTimer(SpawnNPCTimerHandle);
+
+	ASomAB_TPCharacter* KeyNPC = GetWorld()->SpawnActor<ASomAB_TPCharacter>(GetActorLocation() + FVector::UpVector * 88.f, FRotator::ZeroRotator);
+
+	if (KeyNPC != nullptr)
+	{
+		KeyNPC->OnDestroyed.AddDynamic(this, &ASomABSection::OnKeyNPCDestroyed);
+	}
+}
+
+void ASomABSection::OnKeyNPCDestroyed(AActor* DestroyedActor)
+{
+	ASomAB_TPCharacter* SomABCharacter = Cast<ASomAB_TPCharacter>(DestroyedActor);
+	ABCHECK(SomABCharacter != nullptr);
+
+	ASomABPlayerController* SomABPlayerController = Cast<ASomABPlayerController>(SomABCharacter->LastHitBy);
+	ABCHECK(SomABPlayerController != nullptr);
+
+	ASomABGameMode* SomABGameMode = Cast<ASomABGameMode>(GetWorld()->GetAuthGameMode());
+	ABCHECK(SomABGameMode != nullptr);
+
+	SomABGameMode->AddScore(SomABPlayerController);
+
+	SetState(ESectionState::Complete);
 }
