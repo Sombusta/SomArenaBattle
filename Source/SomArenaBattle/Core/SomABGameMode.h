@@ -26,4 +26,6 @@ private:
 	UPROPERTY()
 	class ASomABGameState* SomABGameState;
 
+public:
+	int32 GetScore() const;
 };

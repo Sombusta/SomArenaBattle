@@ -56,6 +56,8 @@ void ASomABPlayerController::SetupInputComponent()
 {
 	Super::SetupInputComponent();
 
+	// InputComponent->BindAction(TEXT("GamePause"), EInputEvent::IE_Pressed, this, &ASomABPlayerController::OnGamePause);
+	InputComponent->BindKey(EKeys::M, EInputEvent::IE_Pressed, this, &ASomABPlayerController::OnGamePause);
 }
 
 void ASomABPlayerController::OnPossess(APawn* InPawn)
@@ -72,4 +74,8 @@ void ASomABPlayerController::NPCKill(ASomAB_TPCharacter* KilledNPC) const
 void ASomABPlayerController::AddGameScore() const
 {
 	SomABPlayerState->AddGameScore();
+}
+
+void ASomABPlayerController::OnGamePause()
+{
 }

@@ -18,6 +18,8 @@ public:
 
 	void InitPlayerData();
 
+	void SavePlayerData();
+
 	bool AddExp(int32 IncomeExp);
 
 	float GetExpRatio() const;
@@ -35,14 +37,24 @@ protected:
 	int32 GameScore;
 
 	UPROPERTY(Transient)
+	int32 GameHighScore;
+
+	UPROPERTY(Transient)
 	int32 CharacterLevel;
 
 	UPROPERTY(Transient)
 	int32 Exp;
 
+	UPROPERTY(Transient)
+	int32 CharacterIndex;
+
 public:
 	FOnPlayerStateChangedDelegate OnPlayerStateChanged;
 
+	FString SaveSlotName;
+
 	FORCEINLINE int32 GetGameScore() const { return GameScore; }
+	FORCEINLINE int32 GetGameHighScore() const { return GameHighScore; }
 	FORCEINLINE int32 GetCharacterLevel() const { return CharacterLevel; }
+	FORCEINLINE int32 GetCharacterIndex() const { return CharacterIndex; }
 };

@@ -27,9 +27,32 @@ public:
 private:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SomABWorks", meta = (AllowPrivateAccess = "true"))
 	float Damage;
-
+	
 protected:
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SomABWorks", meta = (BlueprintProtected = "true"))
+	float AttackRange;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SomABWorks", meta = (BlueprintProtected = "true"))
+	float AttackDamageMin;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SomABWorks", meta = (BlueprintProtected = "true"))
+	float AttackDamageMax;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SomABWorks", meta = (BlueprintProtected = "true"))
+	float AttackModifierMin;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SomABWorks", meta = (BlueprintProtected = "true"))
+	float AttackModifierMax;
+
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly ,Transient, Category = "SomABWorks", meta = (BlueprintProtected = "true"))
+	float AttackDamage;
+
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Transient, Category = "SomABWorks", meta = (BlueprintProtected = "true"))
+	float AttackModifier;
 	
 public:	
 	FORCEINLINE float GetWeaponDamage() const { return Damage; }
+	FORCEINLINE float GetAttackRange() const { return AttackRange; }
+	FORCEINLINE float GetAttackDamage() const { return AttackDamage; }
+	FORCEINLINE float GetAttackModifier() const { return AttackModifier; }
 };

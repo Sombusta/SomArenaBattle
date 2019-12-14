@@ -37,6 +37,9 @@ public:
 	void AddGameScore() const;
 
 private:
+	void OnGamePause();
+
+private:
 	UPROPERTY()
 	class USomABHUDWidget* HUDWidget;
 

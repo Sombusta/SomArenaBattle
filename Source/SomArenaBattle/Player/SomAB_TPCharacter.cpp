@@ -24,6 +24,7 @@
 #include "Core/SomABGameInstance.h"
 #include "Core/SomABPlayerController.h"
 #include "Core/SomABPlayerState.h"
+#include "Core/SomABGameMode.h"
 #include "Engine/World.h"
 #include "TimerManager.h"
 #include "UI/SomABHUDWidget.h"
@@ -120,7 +121,7 @@ ASomAB_TPCharacter::ASomAB_TPCharacter()
 	MaxCombo = 4;
 	AttackEndComboState();
 
-	AttackRange = 200.f;
+	AttackRange = 100.f;
 	AttackRadius = 50.f;
 
 	AIControllerClass = ASomABAIController::StaticClass();
@@ -214,7 +215,10 @@ void ASomAB_TPCharacter::BeginPlay()
 
 	auto DefaultSetting = GetDefault<USomABCharacterSetting>();
 
-	AssetIndex = bIsPlayer ? 3 : FMath::RandRange(0, DefaultSetting->CharacterAssets.Num() - 1);
+	ASomABPlayerState* SomABPlayerState = Cast<ASomABPlayerState>(GetPlayerState());
+	ABCHECK(SomABPlayerState != nullptr);
+
+	AssetIndex = bIsPlayer ? SomABPlayerState->GetCharacterIndex() : FMath::RandRange(0, DefaultSetting->CharacterAssets.Num() - 1);
 
 	CharacterAssetToLoad = DefaultSetting->CharacterAssets[AssetIndex];
 
@@ -467,6 +471,8 @@ void ASomAB_TPCharacter::Attack()
 
 void ASomAB_TPCharacter::AttackCheck()
 {
+	float FinalAttackRange = GetFinalAttackRange();
+	
 	FHitResult HitResult;
 	
 	FCollisionQueryParams Params(NAME_None, false, this);
@@ -474,7 +480,7 @@ void ASomAB_TPCharacter::AttackCheck()
 	bool bResult = GetWorld()->SweepSingleByChannel(
 		HitResult,
 		GetActorLocation(),
-		GetActorLocation() + GetActorForwardVector() * 200.f,
+		GetActorLocation() + GetActorForwardVector() * FinalAttackRange,
 		FQuat::Identity,
 		ECollisionChannel::ECC_GameTraceChannel2,
 		FCollisionShape::MakeSphere(50.f),
@@ -482,9 +488,9 @@ void ASomAB_TPCharacter::AttackCheck()
 	
 #if ENABLE_DRAW_DEBUG
 	
-	FVector TraceVec = GetActorForwardVector() * AttackRange;
+	FVector TraceVec = GetActorForwardVector() * FinalAttackRange;
 	FVector Center = GetActorLocation() + TraceVec * 0.5f;
-	float HalfHeight = AttackRange * 0.5f + AttackRadius;
+	float HalfHeight = FinalAttackRange * 0.5f + AttackRadius;
 	FQuat CapsuleRot = FRotationMatrix::MakeFromZ(TraceVec).ToQuat();
 	FColor DrawColor = bResult ? FColor::Green : FColor::Red;
 	float DebugLifeTime = 5.0f;
@@ -501,9 +507,7 @@ void ASomAB_TPCharacter::AttackCheck()
 			
 			FDamageEvent DamageEvent;
 
-			float DamageResult = CurrentWeapon != nullptr ? CharacterStat->GetAttack() + CurrentWeapon->GetWeaponDamage() : CharacterStat->GetAttack();
-
-			HitResult.Actor->TakeDamage(DamageResult, DamageEvent, GetController(), this);
+			HitResult.Actor->TakeDamage(GetFinalAttackDamage(), DamageEvent, GetController(), this);
 		}
 	}
 }
@@ -538,7 +542,16 @@ void ASomAB_TPCharacter::OnAttackMontageEnded(UAnimMontage* Montage, bool bInter
 
 void ASomAB_TPCharacter::SetWeapon(ASomABWeapon* NewWeapon)
 {
-	ABCHECK(NewWeapon != nullptr && CurrentWeapon == nullptr);
+	// ABCHECK(NewWeapon != nullptr && CurrentWeapon == nullptr);
+	
+	ABCHECK(NewWeapon != nullptr);
+
+	if (CurrentWeapon != nullptr)
+	{
+		CurrentWeapon->DetachFromActor(FDetachmentTransformRules::KeepWorldTransform);
+		CurrentWeapon->Destroyed();
+		CurrentWeapon = nullptr;
+	}
 
 	FName WeaponSocket(TEXT("hand_rSocket"));
 
@@ -559,8 +572,7 @@ void ASomAB_TPCharacter::SetCharacterState(ECharacterState NewState)
 
 	switch (CurrentState)
 	{
-	case ECharacterState::Loading:
-		
+	case ECharacterState::Loading:		
 		if (bIsPlayer)
 		{
 			DisableInput(SomABPlayerController);
@@ -570,6 +582,16 @@ void ASomAB_TPCharacter::SetCharacterState(ECharacterState NewState)
 			ASomABPlayerState* SomABPlayerState = Cast<ASomABPlayerState>(GetPlayerState());
 			ABCHECK(SomABPlayerState != nullptr);
 			CharacterStat->SetNewLevel(SomABPlayerState->GetCharacterLevel());
+		}
+		else
+		{
+			ASomABGameMode* SomABGameMode = Cast<ASomABGameMode>(GetWorld()->GetAuthGameMode());
+			ABCHECK(SomABGameMode != nullptr);
+
+			int32 TargetLevel = FMath::CeilToInt(static_cast<float>(SomABGameMode->GetScore()) * 0.8f);
+			int32 FinalLevel = FMath::Clamp<int32>(TargetLevel, 1, 20);
+			ABLOG(Warning, TEXT("New NPC Level : %d"), FinalLevel);
+			CharacterStat->SetNewLevel(FinalLevel);
 		}
 
 		SetActorHiddenInGame(true);
@@ -654,4 +676,17 @@ void ASomAB_TPCharacter::OnAssetsLoadCompleted()
 int32 ASomAB_TPCharacter::GetExp() const
 {
 	return CharacterStat->GetDropExp();
+}
+
+float ASomAB_TPCharacter::GetFinalAttackRange() const
+{
+	return CurrentWeapon != nullptr ? CurrentWeapon->GetAttackRange() : AttackRange;
+}
+
+float ASomAB_TPCharacter::GetFinalAttackDamage() const
+{
+	float AttackDamage = CurrentWeapon != nullptr ? CharacterStat->GetAttack() + CurrentWeapon->GetWeaponDamage() : CharacterStat->GetAttack();
+	float AttackModifier = (CurrentWeapon != nullptr) ? CurrentWeapon->GetAttackModifier() : 1.0f;
+		
+	return AttackDamage * AttackModifier;
 }

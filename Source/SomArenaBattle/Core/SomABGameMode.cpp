@@ -12,7 +12,7 @@
 ASomABGameMode::ASomABGameMode()
 {
 	// set default pawn class to our Blueprinted character
-	static ConstructorHelpers::FClassFinder<APawn> PlayerPawnBPClass(TEXT("Blueprint'/Game/SomBattleArena/Blueprints/Player/BP_SomABCharacter.BP_SomABCharacter_C'"));
+	// static ConstructorHelpers::FClassFinder<APawn> PlayerPawnBPClass(TEXT("Blueprint'/Game/SomBattleArena/Blueprints/Player/ThirdPersonCharacter.ThirdPersonCharacter_C'"));
 
 	/*if (PlayerPawnBPClass.Class != nullptr)
 	{
@@ -58,4 +58,9 @@ void ASomABGameMode::AddScore(ASomABPlayerController* ScoredPlayer)
 	}
 
 	SomABGameState->AddGameScore();
+}
+
+int32 ASomABGameMode::GetScore() const
+{
+	return SomABGameState->GetTotalGameScore();
 }

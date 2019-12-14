@@ -3,20 +3,50 @@
 #include "SomABPlayerState.h"
 #include "SomArenaBattle.h"
 #include "Core/SomABGameInstance.h"
+#include "Libraries/Managers/SaveSystem/SomABSaveGame.h"
+#include "Kismet/GameplayStatics.h"
 
 ASomABPlayerState::ASomABPlayerState()
 {
 	CharacterLevel = 1;
 	GameScore = 0;
+	GameHighScore = 0;
 	Exp = 0;
+	SaveSlotName = TEXT("Player1");
 }
 
 void ASomABPlayerState::InitPlayerData()
 {
-	SetPlayerName(TEXT("Destiny"));
-	SetCharacterLevel(5);
+	USomABSaveGame* SomABSaveGame = Cast<USomABSaveGame>(UGameplayStatics::LoadGameFromSlot(SaveSlotName, 0));
+
+	if (SomABSaveGame == nullptr)
+	{
+		SomABSaveGame = GetMutableDefault<USomABSaveGame>();
+	}
+	
+	SetPlayerName(SomABSaveGame->PlayerName);
+	SetCharacterLevel(SomABSaveGame->Level);
 	GameScore = 0;
-	Exp = 0;
+	GameHighScore = SomABSaveGame->HighScore;
+	Exp = SomABSaveGame->Exp;
+	CharacterIndex = SomABSaveGame->CharacterIndex;
+
+	SavePlayerData();
+}
+
+void ASomABPlayerState::SavePlayerData()
+{
+	USomABSaveGame* NewPlayerData = NewObject<USomABSaveGame>();
+	NewPlayerData->PlayerName = GetPlayerName();
+	NewPlayerData->Level = CharacterLevel;
+	NewPlayerData->Exp = Exp;
+	NewPlayerData->HighScore = GameHighScore;
+	NewPlayerData->CharacterIndex = CharacterIndex;
+
+	if (!UGameplayStatics::SaveGameToSlot(NewPlayerData, SaveSlotName, 0))
+	{
+		ABLOG(Error, TEXT("SaveGame Error!"), 0);
+	}
 }
 
 bool ASomABPlayerState::AddExp(int32 IncomeExp)
@@ -36,6 +66,8 @@ bool ASomABPlayerState::AddExp(int32 IncomeExp)
 
 	OnPlayerStateChanged.Broadcast();
 	   	 
+	SavePlayerData();
+
 	return bDidLevelUp;
 }
 
@@ -53,7 +85,12 @@ float ASomABPlayerState::GetExpRatio() const
 void ASomABPlayerState::AddGameScore()
 {
 	GameScore++;
+
+	if (GameScore >= GameHighScore) GameHighScore = GameScore;
+
 	OnPlayerStateChanged.Broadcast();
+
+	SavePlayerData();
 }
 
 void ASomABPlayerState::SetCharacterLevel(int32 NewCharacterLevel)

@@ -174,13 +174,16 @@ public:
 	FOnAttackEndDelegate OnAttackEnd;
 
 	int32 GetExp() const;
+	
+	float GetFinalAttackRange() const;
+	float GetFinalAttackDamage() const;
 
 	/** Returns CameraBoom subobject **/
 	FORCEINLINE class USpringArmComponent* GetMainCameraArm() const { return MainCameraArm; }
 	/** Returns FollowCamera subobject **/
 	FORCEINLINE class UCameraComponent* GetMainCamera() const { return MainCamera; }
 
-	FORCEINLINE bool CanSetWeapon() const { return CurrentWeapon == nullptr; }
+	FORCEINLINE bool CanSetWeapon() const { return true; /*CurrentWeapon == nullptr;*/ }
 
 	FORCEINLINE bool IsDead() const { return bIsDead; }
 
