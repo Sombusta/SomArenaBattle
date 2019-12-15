@@ -23,6 +23,8 @@ ASomABGameMode::ASomABGameMode()
 	PlayerControllerClass = ASomABPlayerController::StaticClass();
 	PlayerStateClass = ASomABPlayerState::StaticClass();
 	GameStateClass = ASomABGameState::StaticClass();
+
+	ScoreToClear = 2;
 }
 
 void ASomABGameMode::PostInitializeComponents()
@@ -58,6 +60,25 @@ void ASomABGameMode::AddScore(ASomABPlayerController* ScoredPlayer)
 	}
 
 	SomABGameState->AddGameScore();
+
+	if (GetScore() >= ScoreToClear)
+	{
+		SomABGameState->SetGameCleared();
+
+		for (FConstPawnIterator It = GetWorld()->GetPawnIterator(); It; ++It)
+		{
+			(*It)->TurnOff();
+		}
+
+		for (FConstPlayerControllerIterator It = GetWorld()->GetPlayerControllerIterator(); It; ++It)
+		{
+			const auto ABPlayerController = Cast<ASomABPlayerController>(It->Get());
+			if (ABPlayerController != nullptr)
+			{
+				ABPlayerController->ShowResultUI();
+			}
+		}
+	}
 }
 
 int32 ASomABGameMode::GetScore() const

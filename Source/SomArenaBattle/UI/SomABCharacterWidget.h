@@ -11,11 +11,12 @@ class SOMARENABATTLE_API USomABCharacterWidget : public UUserWidget
 {
 	GENERATED_BODY()
 	
-public:	
-	void BindCharacterStat(class USomABCharacterStatComponent* NewCharacterStat);
-	
+public:		
 	virtual void NativeConstruct() override;
 
+	void BindCharacterStat(class USomABCharacterStatComponent* NewCharacterStat);
+	
+protected:
 	void UpdateHPWidget();
 
 private:
@@ -27,5 +28,5 @@ private:
 protected:
 
 public:
-	
+
 };

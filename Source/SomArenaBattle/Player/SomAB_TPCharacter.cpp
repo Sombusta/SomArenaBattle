@@ -215,10 +215,16 @@ void ASomAB_TPCharacter::BeginPlay()
 
 	auto DefaultSetting = GetDefault<USomABCharacterSetting>();
 
-	ASomABPlayerState* SomABPlayerState = Cast<ASomABPlayerState>(GetPlayerState());
-	ABCHECK(SomABPlayerState != nullptr);
-
-	AssetIndex = bIsPlayer ? SomABPlayerState->GetCharacterIndex() : FMath::RandRange(0, DefaultSetting->CharacterAssets.Num() - 1);
+	if (bIsPlayer)
+	{
+		ASomABPlayerState* SomABPlayerState = Cast<ASomABPlayerState>(GetPlayerState());
+		ABCHECK(SomABPlayerState != nullptr);
+		AssetIndex = SomABPlayerState->GetCharacterIndex();
+	}
+	else
+	{
+		AssetIndex = FMath::RandRange(0, DefaultSetting->CharacterAssets.Num() - 1);
+	}	
 
 	CharacterAssetToLoad = DefaultSetting->CharacterAssets[AssetIndex];
 
@@ -648,7 +654,8 @@ void ASomAB_TPCharacter::SetCharacterState(ECharacterState NewState)
 
 			if (bIsPlayer)
 			{
-				SomABPlayerController->RestartLevel();
+				// SomABPlayerController->RestartLevel();
+				SomABPlayerController->ShowResultUI();
 			}
 			else
 			{

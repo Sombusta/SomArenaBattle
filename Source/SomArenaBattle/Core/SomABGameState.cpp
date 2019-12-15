@@ -11,3 +11,8 @@ void ASomABGameState::AddGameScore()
 {
 	TotalGameScore++;
 }
+
+void ASomABGameState::SetGameCleared()
+{
+	bGameCleared = true;
+}

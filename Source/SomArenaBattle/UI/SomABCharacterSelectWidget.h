@@ -11,18 +11,6 @@ class SOMARENABATTLE_API USomABCharacterSelectWidget : public UUserWidget
 {
 	GENERATED_BODY()
 	
-	UPROPERTY()
-	class UButton* PrevButton;
-
-	UPROPERTY()
-	class UButton* NextButton;
-
-	UPROPERTY()
-	class UEditableTextBox* TextBox;
-
-	UPROPERTY()
-	class UButton* ConfirmButton;
-		
 public:
 	virtual void NativeConstruct() override;
 
@@ -43,6 +31,18 @@ protected:
 private:
 	
 protected:
+	UPROPERTY()
+	class UButton* PrevButton;
+
+	UPROPERTY()
+	class UButton* NextButton;
+
+	UPROPERTY()
+	class UEditableTextBox* TextBox;
+
+	UPROPERTY()
+	class UButton* ConfirmButton;
+	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SomABWorks", meta = (BlueprintProtected = "true"))
 	int32 CurrentIndex;
 

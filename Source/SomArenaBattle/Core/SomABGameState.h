@@ -16,10 +16,18 @@ public:
 	
 	void AddGameScore();
 
+	void SetGameCleared();
+
 private:
 	UPROPERTY(Transient)
 	int32 TotalGameScore;
 
+	UPROPERTY(Transient)
+	bool bGameCleared;
+
+
 public:
 	FORCEINLINE int32 GetTotalGameScore() const { return TotalGameScore; }
+
+	FORCEINLINE bool IsGameCleared() const { return bGameCleared; }
 };

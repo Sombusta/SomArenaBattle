@@ -10,6 +10,20 @@ UCLASS()
 class SOMARENABATTLE_API USomABHUDWidget : public UUserWidget
 {
 	GENERATED_BODY()
+			
+public:
+	virtual void NativeConstruct() override;
+		
+	void BindCharacterStat(class USomABCharacterStatComponent* CharacterStat);
+	void BindPlayerState(class ASomABPlayerState* PlayerStat);
+
+protected:
+	void UpdateCharacterStat();
+	void UpdatePlayerState();
+
+private:
+	TWeakObjectPtr<class USomABCharacterStatComponent> CurrentCharacterStat;
+	TWeakObjectPtr<class ASomABPlayerState> CurrentPlayerState;
 
 	UPROPERTY()
 	class UProgressBar* HPBar;
@@ -28,19 +42,4 @@ class SOMARENABATTLE_API USomABHUDWidget : public UUserWidget
 
 	UPROPERTY()
 	class UTextBlock* HighScore;
-	
-public:
-	virtual void NativeConstruct() override;
-		
-	void BindCharacterStat(class USomABCharacterStatComponent* CharacterStat);
-	void BindPlayerState(class ASomABPlayerState* PlayerStat);
-
-protected:
-	void UpdateCharacterStat();
-	void UpdatePlayerState();
-
-private:
-	TWeakObjectPtr<class USomABCharacterStatComponent> CurrentCharacterStat;
-	TWeakObjectPtr<class ASomABPlayerState> CurrentPlayerState;
-
 };

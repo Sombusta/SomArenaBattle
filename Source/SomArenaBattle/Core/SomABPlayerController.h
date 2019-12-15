@@ -36,6 +36,10 @@ public:
 
 	void AddGameScore() const;
 
+	void ChangeInputMode(bool bGameMode = true);
+
+	void ShowResultUI();
+
 private:
 	void OnGamePause();
 
@@ -44,11 +48,26 @@ private:
 	class USomABHUDWidget* HUDWidget;
 
 	UPROPERTY()
+	class USomABGamePlayWidget* MenuWidget;
+
+	UPROPERTY()
+	class USomABGamePlayResultWidget* ResultWidget;
+
+	UPROPERTY()
 	class ASomABPlayerState* SomABPlayerState;
+
+	FInputModeGameOnly GameInputMode;
+	FInputModeUIOnly UIIpuntMode;
 
 protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "SomABWorks|Variables", meta = (BlueprintProtected = "true"))
 	TSubclassOf<class USomABHUDWidget> HUDWidgetClass;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "SomABWorks|Variables", meta = (BlueprintProtected = "true"))
+	TSubclassOf<class USomABGamePlayWidget> MenuWidgetClass;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "SomABWorks|Variables", meta = (BlueprintProtected = "true"))
+	TSubclassOf<class USomABGamePlayResultWidget> ResultWidgetClass;
 	
 public:
 	FORCEINLINE class USomABHUDWidget* GetHUDWidget() const { return HUDWidget; }
